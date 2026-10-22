@@ -1,0 +1,56 @@
+nc: 5   # RTTS: bicycle, bus, car, motorbike, person
+
+scales:
+  m: [0.50, 1.00, 512]
+
+# ══════════════════════════════════════════════════════════════════
+# BACKBONE — MSA_C2f thay A2C2f tại P4 và P5
+# ══════════════════════════════════════════════════════════════════
+backbone:
+  # [from, repeats_yaml, module, args]
+
+  - [-1, 1, Conv,    [64, 3, 2]]           #  0 — P1/2   3→64
+  - [-1, 1, Conv,    [128, 3, 2]]          #  1 — P2/4   64→128
+  - [-1, 2, C3k2,    [256, False, 0.25]]   #  2 —        128→256  (n=1)
+  - [-1, 1, Conv,    [256, 3, 2]]          #  3 — P3/8   256→256
+  - [-1, 2, C3k2,    [512, False, 0.25]]   #  4 — P3↓    256→512  (n=1) — skip→head
+
+  - [-1, 1, Conv,    [512, 3, 2]]          #  5 — P4/16  512→512
+  - [-1, 4, MSA_C2f, [512, 4]]             #  6 — P4 MSA 512→512  (n=2)
+                                            #      area=4: 40×40 → 4×(20×20)=400tok/area
+                                            #      4 MSABlock (2 Sequential × 2 block)
+
+  - [-1, 1, Conv,    [512, 3, 2]]          #  7 — P5/32  512→512
+  - [-1, 4, MSA_C2f, [512, 4]]             #  8 — P5 MSA 512→512  (n=2)
+                                            #      area=4: 20×20 → 4×(10×10)=100tok/area
+
+# ══════════════════════════════════════════════════════════════════
+# HEAD — A2C2f gốc (giống baseline yolo12m hoàn toàn)
+# ══════════════════════════════════════════════════════════════════
+
+head:
+  # ── FPN top-down ─────────────────────────────────────────────
+  - [-1,    1, nn.Upsample, [None, 2, 'nearest']]  #  9  up P5→40×40
+  - [[-1, 6], 1, Concat,    [1]]                    # 10  cat P4-back
+  - [-1,    1, A2C2f,       [512, False, -1]]        # 11  P4 neck
+
+  - [-1,    1, nn.Upsample, [None, 2, 'nearest']]  # 12  up P4→80×80
+  - [[-1, 4], 1, Concat,    [1]]                    # 13  cat P3-back
+  - [-1,    1, A2C2f,       [256, False, -1]]        # 14  P3 neck ← detect P3
+
+  # ── PAN bottom-up ────────────────────────────────────────────
+  - [-1,     1, Conv,       [256, 3, 2]]            # 15  down 80→40
+  - [[-1, 11], 1, Concat,   [1]]                    # 16  cat P4-neck
+  - [-1,     1, A2C2f,      [512, False, -1]]        # 17  P4 BU
+
+  - [-1,     1, ProtoCohere,[512, 5]]                # 18  ProtoCohere ← THÊM MỚI
+                                                     #     512=c2, 5=num_classes RTTS
+
+  - [-1,    1, Conv,        [512, 3, 2]]            # 19  down 40→20  (was 18)
+  - [[-1, 8], 1, Concat,    [1]]                    # 20  cat P5-back (was 19)
+  - [-1,    1, C3k2,        [512, True]]             # 21  P5 BU      (was 20) ← detect P5
+
+  - [[14, 18, 21], 1, Detect, [nc]]                 # 22  Detect — CẬP NHẬT INDICES
+  #    ^^  ^^  ^^
+  #    P3  P4  P5
+  #     14  18  21   (P4 từ 17→18 vì ProtoCohere thay thế detect P4)

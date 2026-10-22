@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files & Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+~$*
+
+# Large temporary recordings & test outputs
+*.wav
+*.mp3
+*.mp4
+*.zip
+*.log
+
+# Sensitive environment variables
+.env
+.env.local
+
+# Folder công cụ nội bộ (không đẩy lên repo)
+congcu/
+push_to_github.bat
+test_output.txt

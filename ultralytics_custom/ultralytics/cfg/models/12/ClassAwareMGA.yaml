@@ -1,0 +1,69 @@
+# YOLOv12m + MSA_C2f (backbone) + ProtoCohere × 2 (P3 + P4 neck)
+# ════════════════════════════════════════════════════════════════
+#
+# Thay đổi so với yolo12m_msa_v3.yaml (PCM chỉ ở P4):
+#   + Thêm ProtoCohere tại P3 neck (layer 15, 80×80, 256ch)
+#   → Giúp small objects: bicycle, motorbike (class yếu nhất)
+#
+# Channel flow (scale m: depth=0.50, width=1.00):
+#   Detect inputs: P3=ch[15]=256  P4=ch[19]=512  P5=ch[22]=512  ✅
+#
+# Params thêm so với MSA-only: +5,122  (2 × 2,561 params)
+# Total params vẫn nhỏ hơn YOLOv12m baseline (20.1M)
+#
+# YAML syntax ProtoCohere: [c2, num_classes]
+#   parse_model inject [c1, c2, num_classes] tự động
+#   c1 = c2 (residual module)
+#
+# CẢNH BÁO: Kiến trúc private — không chia sẻ.
+# ════════════════════════════════════════════════════════════════
+
+nc: 5   # RTTS: bicycle, bus, car, motorbike, person
+
+scales:
+  # [depth, width, max_channels]
+  m: [0.50, 1.00, 512]
+
+# ══════════════════════════════════════════════════════════════════
+# BACKBONE — MSA_C2f thay A2C2f tại P4 và P5
+# ══════════════════════════════════════════════════════════════════
+backbone:
+  # [from, repeats_yaml, module, args]
+  # repeats_yaml × depth=0.50: n=4→2, n=2→1
+
+  - [-1, 1, Conv,    [64, 3, 2]]           #  0 — P1/2     3→64
+  - [-1, 1, Conv,    [128, 3, 2]]          #  1 — P2/4    64→128
+  - [-1, 2, C3k2,    [256, False, 0.25]]   #  2 —        128→256  (n=1)
+  - [-1, 1, Conv,    [256, 3, 2]]          #  3 — P3/8   256→256
+  - [-1, 2, C3k2,    [512, False, 0.25]]   #  4 — P3↓    256→512  (n=1) — skip→head
+
+  - [-1, 1, Conv,    [512, 3, 2]]          #  5 — P4/16  512→512
+  - [-1, 4, MSA_C2f, [512, 4]]             #  6 — P4 MSA 512→512  (n=2)
+#      area=4: 40×40 → 4×(20×20)=400 tok/area
+#      4 MSABlock (2 Sequential × 2 block)
+
+  - [-1, 1, Conv,    [512, 3, 2]]          #  7 — P5/32  512→512
+  - [-1, 4, MSA_C2f, [512, 4]]             #  8 — P5 MSA 512→512  (n=2)
+#      area=4: 20×20 → 4×(10×10)=100 tok/area
+
+# ══════════════════════════════════════════════════════════════════
+# HEAD — A2C2f gốc + ProtoCohere tại P3 và P4
+# ══════════════════════════════════════════════════════════════════
+head:
+  # ── FPN top-down ─────────────────────────────────────────────
+  - [-1,    1, nn.Upsample, [None, 2, 'nearest']]  #  9  up P5→40×40     512
+  - [[-1, 6], 1, Concat,    [1]]                    # 10  cat P4-back  512+512=1024
+  - [-1,    1, A2C2f,       [512, False, -1]]        # 11  P4 neck      1024→512
+
+  - [-1,    1, nn.Upsample, [None, 2, 'nearest']]  # 12  up P4→80×80     512
+  - [[-1, 4], 1, Concat,    [1]]                    # 13  cat P3-back  512+512=1024
+  - [-1,    1, A2C2f,  [256, False, -1]]    # 14  P3 neck
+  - [-1, 1, ClassAwareMGA, [256, 5, 32]]            # 15  MGA @ P3
+  - [-1,     1, Conv,  [256, 3, 2]]          # 16
+  - [[-1,11], 1, Concat,[1]]                 # 17
+  - [-1,     1, A2C2f, [512, False, -1]]     # 18  P4 BU
+  - [-1, 1, ClassAwareMGA, [512, 5, 32]]            # 19  MGA @ P4
+  - [-1,    1, Conv,   [512, 3, 2]]          # 20
+  - [[-1, 8], 1, Concat,[1]]                 # 21
+  - [-1,    1, C3k2,   [512, True]]          # 22
+  - [[15, 19, 22], 1, Detect, [nc]]          # 23

@@ -1,0 +1,66 @@
+# YOLOv12m + MSA v3  (MSABlock backbone + A2C2f head)
+# ════════════════════════════════════════════════════════════════
+# Ablation: MSA_C2f ở backbone, A2C2f gốc ở head.
+#
+# MSA_C2f YAML args: [c2, area]
+#   area=4 → 4 vùng không gian, mỗi vùng M token
+#   K=64, D=128, Z=c_ tự động (default)
+#
+# scale m:  depth=0.50, width=1.00, max_channels=512
+#   n_yaml=4 → n_actual=2
+#   Mỗi MSA_C2f có: 2 × Sequential(MSABlock, MSABlock) = 4 MSABlock
+#
+# Detect inputs: P3=256, P4=512, P5=512  ✓ (đã verify)
+#
+# CẢNH BÁO: Kiến trúc private — không chia sẻ.
+# ════════════════════════════════════════════════════════════════
+
+nc: 5   # RTTS: bicycle, bus, car, motorbike, person
+
+scales:
+  m: [0.50, 1.00, 512]
+
+# ══════════════════════════════════════════════════════════════════
+# BACKBONE — MSA_C2f thay A2C2f tại P4 và P5
+# ══════════════════════════════════════════════════════════════════
+backbone:
+  # [from, repeats_yaml, module, args]
+
+  - [-1, 1, Conv,    [64, 3, 2]]           #  0 — P1/2   3→64
+  - [-1, 1, Conv,    [128, 3, 2]]          #  1 — P2/4   64→128
+  - [-1, 2, C3k2,    [256, False, 0.25]]   #  2 —        128→256  (n=1)
+  - [-1, 1, Conv,    [256, 3, 2]]          #  3 — P3/8   256→256
+  - [-1, 2, C3k2,    [512, False, 0.25]]   #  4 — P3↓    256→512  (n=1) — skip→head
+
+  - [-1, 1, Conv,    [512, 3, 2]]          #  5 — P4/16  512→512
+  - [-1, 4, MSA_C2f, [512, 4]]             #  6 — P4 MSA 512→512  (n=2)
+                                            #      area=4: 40×40 → 4×(20×20)=400tok/area
+                                            #      4 MSABlock (2 Sequential × 2 block)
+
+  - [-1, 1, Conv,    [512, 3, 2]]          #  7 — P5/32  512→512
+  - [-1, 4, MSA_C2f, [512, 4]]             #  8 — P5 MSA 512→512  (n=2)
+                                            #      area=4: 20×20 → 4×(10×10)=100tok/area
+
+# ══════════════════════════════════════════════════════════════════
+# HEAD — A2C2f gốc (giống baseline yolo12m hoàn toàn)
+# ══════════════════════════════════════════════════════════════════
+head:
+  # ── FPN top-down ─────────────────────────────────────────────
+  - [-1,    1, nn.Upsample, [None, 2, 'nearest']]  #  9  up P5→40×40   512
+  - [[-1, 6], 1, Concat,    [1]]                    # 10  cat P4-back   512+512=1024
+  - [-1,    1, A2C2f,       [512, False, -1]]        # 11  P4 neck       1024→512
+
+  - [-1,    1, nn.Upsample, [None, 2, 'nearest']]  # 12  up P4→80×80   512
+  - [[-1, 4], 1, Concat,    [1]]                    # 13  cat P3-back   512+512=1024
+  - [-1,    1, A2C2f,       [256, False, -1]]        # 14  P3 neck       1024→256  ← detect P3
+
+  # ── PAN bottom-up ────────────────────────────────────────────
+  - [-1,     1, Conv,       [256, 3, 2]]            # 15  down 80→40    256→256
+  - [[-1, 11], 1, Concat,   [1]]                    # 16  cat P4-neck   256+512=768
+  - [-1,     1, A2C2f,      [512, False, -1]]        # 17  P4 BU         768→512   ← detect P4
+
+  - [-1,    1, Conv,        [512, 3, 2]]            # 18  down 40→20    512→512
+  - [[-1, 8], 1, Concat,    [1]]                    # 19  cat P5-back   512+512=1024
+  - [-1,    1, C3k2,        [512, True]]             # 20  P5 BU         1024→512  ← detect P5
+
+  - [[14, 17, 20], 1, Detect, [nc]]                 # 21  Detect(P3=256, P4=512, P5=512)
