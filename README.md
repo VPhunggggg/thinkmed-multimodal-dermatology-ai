@@ -177,7 +177,7 @@ skin_disease_rag/
 
 ### Bước 1: Sao chép mã nguồn (Clone repository)
 ```bash
-git clone https://github.com/VPhunggggg/skin_disease_rag.git
+git clone https://github.com/VPhunggggg/thinkmed-multimodal-dermatology-ai.git skin_disease_rag
 cd skin_disease_rag
 ```
 
