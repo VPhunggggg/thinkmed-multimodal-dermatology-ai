@@ -1,3 +1,5 @@
+![ThinkMed — multimodal healthcare](docs/images/cover.png)
+
 # 🩺 ThinkMed: Hệ thống Kiosk AI Đa phương thức Sàng lọc Bệnh Da liễu & Tư vấn Y tế Thông minh
 
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="title description">
+  <title id="title">ThinkMed — MULTIMODAL HEALTHCARE</title>
+  <desc id="description">Vision, medical retrieval and voice in one dermatology kiosk. An original project cover in a coordinated dark and orange portfolio series.</desc>
+  <rect width="1280" height="420" rx="12" fill="#0D1117"/>
+  <rect x=".5" y=".5" width="1279" height="419" rx="12" fill="none" stroke="#30363D"/>
+  <g transform="translate(0,0)">
+    <path d="M48 49h28" stroke="#F0883E" stroke-width="3"/>
+    <g font-family="Consolas, 'Liberation Mono', monospace" font-size="15" letter-spacing="1.4">
+      <text x="92" y="55" fill="#B1BAC4">01 / MULTIMODAL HEALTHCARE</text>
+      <text x="1232" y="55" text-anchor="end" fill="#8B949E">NVP. / PROJECT SERIES</text>
+    </g>
+    <path d="M48 83h1184M48 334h1184M850 116v180" stroke="#30363D"/>
+    <g font-family="'Segoe UI', Arial, sans-serif">
+      <text x="45" y="181" fill="#E6EDF3" font-size="76" font-weight="600" letter-spacing="-2.5">ThinkMed</text>
+      <text x="49" y="231" fill="#B1BAC4" font-size="25">Vision, medical retrieval and voice</text>
+      <text x="49" y="267" fill="#B1BAC4" font-size="25">in one dermatology kiosk.</text>
+    </g>
+    <g transform="translate(909,105)" stroke-linecap="round">
+    <rect x="27" y="9" width="199" height="145" rx="12" fill="#161D26" stroke="#8B949E"/>
+    <rect x="39" y="21" width="175" height="119" rx="5" fill="#0D1117" stroke="#30363D"/>
+    <path d="M68 46h20v-20h20v20h20v20h-20v20H88V66H68Z" transform="translate(0,12)" fill="#E6EDF3"/>
+    <path d="M146 53h47m-47 14h32m-32 14h40" stroke="#8B949E" stroke-width="3"/>
+    <path d="M59 116h24l7-11 9 21 10-26 9 16h23l7-8 6 15 7-7h34" stroke="#F0883E" stroke-width="3" fill="none" stroke-linejoin="round"/>
+    <path d="M113 155v29m27-29v29m-50 3h73" stroke="#8B949E" stroke-width="3"/>
+    <path d="M239 50h26v20l-8 8h-18Z" stroke="#F0883E" fill="#161D26" stroke-width="2"/>
+    <path d="M247 57h10m-10 7h7M226 63h13" stroke="#F0883E" stroke-width="2"/>
+    <circle cx="127" cy="148" r="2" fill="#F0883E"/></g>
+    <text x="49" y="376" fill="#8B949E" font-family="Consolas, 'Liberation Mono', monospace" font-size="15" letter-spacing=".6">COMPUTER VISION  /  RAG  /  VIETNAMESE VOICE</text>
+    <path d="M1195 375h35m-10-10 10 10-10 10" stroke="#F0883E" fill="none" stroke-width="2"/>
+  </g>
+</svg>
